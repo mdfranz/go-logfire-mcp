@@ -2,6 +2,7 @@
 
 VERSION ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
+INSTALL_DIR ?= $(HOME)/.local/bin
 
 all: fmt vet test build
 
@@ -26,8 +27,9 @@ vet:
 	go vet ./...
 
 install:
-	go install $(LDFLAGS) ./cmd/logfire-mcp
-	go install $(LDFLAGS) ./cmd/logfire-cli
+	mkdir -p $(INSTALL_DIR)
+	go build $(LDFLAGS) -o $(INSTALL_DIR)/logfire-mcp ./cmd/logfire-mcp
+	go build $(LDFLAGS) -o $(INSTALL_DIR)/logfire-cli ./cmd/logfire-cli
 
 clean:
 	rm -f logfire-mcp logfire-cli

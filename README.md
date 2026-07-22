@@ -26,7 +26,7 @@ make build
 # Run unit tests
 make test
 
-# Install binaries to $GOPATH/bin
+# Install binaries to ~/.local/bin (override with INSTALL_DIR=/custom/path)
 make install
 ```
 
