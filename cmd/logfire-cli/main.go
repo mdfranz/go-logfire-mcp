@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/mdfranz/go-logfire-mcp/internal/logfire"
 )
@@ -56,13 +57,22 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
+	logger, closeLog, err := configureLogger()
+	if err != nil {
+		writeError(stderr, fmt.Errorf("logging configuration error: %w", err))
+		return 1
+	}
+	defer closeLog()
+
 	if sql == "" {
+		logger.Error("missing required query flag", "flag", "sql")
 		fmt.Fprintln(stderr, "Error: --sql is required")
 		fs.Usage()
 		return 2
 	}
 
 	if minTimestamp == "" {
+		logger.Error("missing required query flag", "flag", "min-timestamp")
 		fmt.Fprintln(stderr, "Error: --min-timestamp is required")
 		fs.Usage()
 		return 2
@@ -70,11 +80,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	cfg, err := logfire.LoadConfig()
 	if err != nil {
+		logger.Error("failed to load configuration", "error", err)
 		writeError(stderr, fmt.Errorf("configuration error: %w", err))
 		return 1
 	}
 
 	if err := cfg.ValidateForQuery(); err != nil {
+		logger.Error("query configuration is invalid", "error", err)
 		writeError(stderr, err)
 		return 1
 	}
@@ -87,17 +99,25 @@ func run(args []string, stdout, stderr io.Writer) int {
 		MaxTimestamp: maxTimestamp,
 		Limit:        limit,
 	}
+	logger.Debug("executing query", "sql", sql, "format", format, "sql_bytes", len(sql), "has_max_timestamp", maxTimestamp != "", "limit", limit)
 
+	startTime := time.Now()
 	result, err := client.Query(context.Background(), input, format)
+	duration := time.Since(startTime)
+
 	if err != nil {
+		logger.Error("query failed", "error", err, "duration_ms", duration.Milliseconds())
 		writeError(stderr, err)
 		return 1
 	}
 
 	if err := writeResult(stdout, result); err != nil {
+		logger.Error("failed to write query result", "error", err, "duration_ms", duration.Milliseconds())
 		writeError(stderr, fmt.Errorf("failed to write stdout: %w", err))
 		return 1
 	}
+
+	logger.Debug("query completed", "duration_ms", duration.Milliseconds(), "records", logfire.CountResultRows(result, format), "result_bytes", len(result))
 
 	return 0
 }
@@ -120,6 +140,7 @@ Environment Variables:
   LOGFIRE_READ_TOKEN  Alternative token env var fallback
   LOGFIRE_REGION      Logfire region ("us" or "eu", default "us")
   LOGFIRE_BASE_URL    Advanced/test override for base URL
+  LOGFIRE_MAX_RETRIES Max retries for API requests (default 3)
 `
 	fmt.Fprint(w, helpText)
 }

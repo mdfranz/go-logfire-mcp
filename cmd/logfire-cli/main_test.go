@@ -19,9 +19,11 @@ func TestCLIRunSuccess(t *testing.T) {
 
 	os.Setenv("LOGFIRE_BASE_URL", server.URL)
 	os.Setenv("LOGFIRE_API_TOKEN", "dummy-token")
+	os.Setenv("LOGFIRE_CLI_LOGFILE", "off")
 	defer func() {
 		os.Unsetenv("LOGFIRE_BASE_URL")
 		os.Unsetenv("LOGFIRE_API_TOKEN")
+		os.Unsetenv("LOGFIRE_CLI_LOGFILE")
 	}()
 
 	var stdout, stderr bytes.Buffer

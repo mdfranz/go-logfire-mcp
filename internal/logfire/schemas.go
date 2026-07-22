@@ -1,6 +1,7 @@
 package logfire
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -59,5 +60,35 @@ func AcceptHeaderFor(format string) (string, error) {
 		return "text/csv", nil
 	default:
 		return "", fmt.Errorf("unsupported output format %q: expected 'json' or 'csv'", format)
+	}
+}
+
+// CountResultRows returns the number of data rows contained in a query response string.
+func CountResultRows(result string, format string) int {
+	if strings.TrimSpace(result) == "" {
+		return 0
+	}
+
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "csv":
+		lines := strings.Split(strings.ReplaceAll(result, "\r\n", "\n"), "\n")
+		nonEmpty := 0
+		for _, line := range lines {
+			if strings.TrimSpace(line) != "" {
+				nonEmpty++
+			}
+		}
+		if nonEmpty <= 1 {
+			return 0
+		}
+		return nonEmpty - 1
+	default:
+		var parsed struct {
+			Data []any `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(result), &parsed); err == nil {
+			return len(parsed.Data)
+		}
+		return 0
 	}
 }

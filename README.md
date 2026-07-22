@@ -20,7 +20,7 @@ For complete package-level documentation, see [PKG.md](PKG.md).
 ## Build & Install
 
 ```bash
-# Build both binaries to ./bin/
+# Build both binaries to the project root directory
 make build
 
 # Run unit tests
@@ -39,24 +39,30 @@ Configuration is set via environment variables:
 | `LOGFIRE_API_TOKEN` | Required | Logfire read token or API key. Also accepts `LOGFIRE_READ_TOKEN` or `LOGFIRE_API_KEY`. |
 | `LOGFIRE_REGION` | `us` | Region: `us` or `eu`. Auto-inferred if token prefix is `pylf_v1_eu_...`. |
 | `LOGFIRE_BASE_URL` | Optional | Custom base URL override (used for testing against mock servers). |
-| `LOGFIRE_MCP_LOGFILE` | `stderr` | MCP server log target: `stderr`, `off`, or a file path. |
+| `LOGFIRE_MCP_LOGFILE` | `logfire-mcp.log` | MCP server log target: `stderr`, `off`, or an append-only file path. |
+| `LOGFIRE_MCP_DEBUG` | `true` | Emit DEBUG logs by default; set to `false`, `off`, or `0` for INFO level. |
+| `LOGFIRE_CLI_LOGFILE` | `logfire-cli.log` | CLI log target: `stderr`, `off`, or an append-only file path. |
+| `LOGFIRE_CLI_DEBUG` | `true` | Emit DEBUG logs by default; set to `false`, `off`, or `0` for INFO level. |
+| `LOGFIRE_MAX_RETRIES` | `3` | Maximum retry attempts for transient API errors & HTTP 429 rate limits. |
 | `LOGFIRE_MCP_LOCKFILE` | `off` | Lockfile path for single-instance PID locking (e.g. `/tmp/logfire-mcp.lock`). |
 | `LOGFIRE_MCP_MAX_RESULT_BYTES` | `1048576` | Maximum size cap (in bytes) for MCP tool response strings (default 1 MiB). |
+
+The CLI and MCP server use separate log files so their independent processes do not interleave output. API read tokens and query result payloads are never written to logs. When DEBUG logging is enabled, debug log entries record the SQL query text, parameters, execution latency (`duration_ms`), returned row count (`records`), and byte size (`result_bytes`). Use `stderr` when a process supervisor should collect logs instead.
 
 ## CLI Usage (`logfire-cli`)
 
 ```bash
 # General help (does not require an API token)
-./bin/logfire-cli --help
+./logfire-cli --help
 
 # Query records in JSON format (default)
 export LOGFIRE_API_TOKEN="pylf_v1_us_..."
-./bin/logfire-cli query \
+./logfire-cli query \
   --sql "SELECT start_timestamp, service_name, message FROM records ORDER BY start_timestamp DESC LIMIT 5" \
   --min-timestamp "2026-01-01T00:00:00Z"
 
 # Grouping query in CSV format
-./bin/logfire-cli query \
+./logfire-cli query \
   --sql "SELECT service_name, count(*) as total FROM records GROUP BY service_name ORDER BY total DESC" \
   --min-timestamp "2026-01-01T00:00:00Z" \
   --format csv

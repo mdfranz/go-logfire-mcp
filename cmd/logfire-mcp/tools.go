@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"time"
 
 	"github.com/mdfranz/go-logfire-mcp/internal/logfire"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -65,13 +67,22 @@ func registerTools(s *mcp.Server, client *logfire.Client, maxResultBytes int64) 
 		}
 
 		if err := queryInput.Validate(); err != nil {
+			slog.Error("query validation failed", "error", err)
 			return errorResult(err), nil
 		}
 
+		slog.Debug("executing query", "sql", input.Query, "min_timestamp", input.MinTimestamp, "max_timestamp", input.MaxTimestamp, "limit", input.Limit)
+
+		startTime := time.Now()
 		res, err := client.Query(ctx, queryInput, "json")
+		duration := time.Since(startTime)
+
 		if err != nil {
+			slog.Error("query execution failed", "error", err, "duration_ms", duration.Milliseconds())
 			return errorResult(err), nil
 		}
+
+		slog.Debug("query completed", "duration_ms", duration.Milliseconds(), "records", logfire.CountResultRows(res, "json"), "result_bytes", len(res))
 
 		if maxResultBytes > 0 && int64(len(res)) > maxResultBytes {
 			return errorResult(fmt.Errorf("result size (%d bytes) exceeds maximum MCP tool response limit of %d bytes; try setting limit, selecting fewer columns, or narrowing time range", len(res), maxResultBytes)), nil

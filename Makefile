@@ -6,9 +6,8 @@ LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 all: fmt vet test build
 
 build:
-	mkdir -p bin
-	go build $(LDFLAGS) -o bin/logfire-mcp ./cmd/logfire-mcp
-	go build $(LDFLAGS) -o bin/logfire-cli ./cmd/logfire-cli
+	go build $(LDFLAGS) -o logfire-mcp ./cmd/logfire-mcp
+	go build $(LDFLAGS) -o logfire-cli ./cmd/logfire-cli
 
 test:
 	go test -v ./...
@@ -31,4 +30,4 @@ install:
 	go install $(LDFLAGS) ./cmd/logfire-cli
 
 clean:
-	rm -rf bin
+	rm -f logfire-mcp logfire-cli

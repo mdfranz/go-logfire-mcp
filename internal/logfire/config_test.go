@@ -104,4 +104,19 @@ func TestConfigLoading(t *testing.T) {
 			t.Errorf("expected error for non-loopback http base URL")
 		}
 	})
+
+	t.Run("LOGFIRE_MAX_RETRIES custom setting", func(t *testing.T) {
+		os.Unsetenv("LOGFIRE_REGION")
+		os.Unsetenv("LOGFIRE_BASE_URL")
+		os.Setenv("LOGFIRE_MAX_RETRIES", "5")
+		defer os.Unsetenv("LOGFIRE_MAX_RETRIES")
+
+		cfg, err := logfire.LoadConfig()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if cfg.MaxRetries != 5 {
+			t.Errorf("expected MaxRetries=5, got %d", cfg.MaxRetries)
+		}
+	})
 }

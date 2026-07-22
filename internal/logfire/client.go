@@ -97,7 +97,7 @@ func (c *Client) Query(ctx context.Context, input QueryInput, format string) (st
 				return "", err
 			}
 
-			// Check for Retry-After header if present
+			// Determine initial or updated backoff
 			if retryAfterStr := resp.Header.Get("Retry-After"); retryAfterStr != "" {
 				if sec, parseErr := strconv.Atoi(strings.TrimSpace(retryAfterStr)); parseErr == nil && sec > 0 {
 					backoff = time.Duration(sec) * time.Second
@@ -106,6 +106,8 @@ func (c *Client) Query(ctx context.Context, input QueryInput, format string) (st
 						backoff = sleepDur
 					}
 				}
+			} else if apiErr.StatusCode == 429 && backoff < 1*time.Second {
+				backoff = 1 * time.Second
 			}
 		}
 
@@ -122,8 +124,14 @@ func (c *Client) Query(ctx context.Context, input QueryInput, format string) (st
 		}
 
 		backoff *= 2
-		if backoff > 10*time.Second {
-			backoff = 10 * time.Second
+		maxBackoff := 10 * time.Second
+		if lastErr != nil {
+			if apiErr, ok := lastErr.(*APIError); ok && apiErr.StatusCode == 429 {
+				maxBackoff = 30 * time.Second
+			}
+		}
+		if backoff > maxBackoff {
+			backoff = maxBackoff
 		}
 	}
 

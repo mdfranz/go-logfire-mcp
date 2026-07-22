@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -81,12 +82,19 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 
+	maxRetries := 3
+	if envRetries := strings.TrimSpace(os.Getenv("LOGFIRE_MAX_RETRIES")); envRetries != "" {
+		if val, err := strconv.Atoi(envRetries); err == nil && val >= 0 {
+			maxRetries = val
+		}
+	}
+
 	return &Config{
 		APIToken:         token,
 		Region:           resolvedRegion,
 		BaseURL:          resolvedBaseURL,
 		Timeout:          30 * time.Second,
-		MaxRetries:       3,
+		MaxRetries:       maxRetries,
 		MaxResponseBytes: 16 * 1024 * 1024, // 16 MiB default
 	}, nil
 }

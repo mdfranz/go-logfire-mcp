@@ -26,39 +26,17 @@ func run() int {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Configure logging
 	logFileTarget := strings.TrimSpace(os.Getenv("LOGFIRE_MCP_LOGFILE"))
 	if logFileTarget == "" {
-		logFileTarget = "stderr"
+		logFileTarget = "logfire-mcp.log"
 	}
-
-	var logWriter io.Writer
-	switch strings.ToLower(logFileTarget) {
-	case "off":
-		logWriter = io.Discard
-	case "stderr":
-		logWriter = os.Stderr
-	default:
-		// Ensure parent directory exists
-		if err := os.MkdirAll(filepath.Dir(logFileTarget), 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create log directory: %v\n", err)
-			return 1
-		}
-		f, err := os.OpenFile(logFileTarget, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to open logfile: %v\n", err)
-			return 1
-		}
-		defer f.Close()
-		logWriter = f
+	debugLogging := debugEnabled(os.Getenv("LOGFIRE_MCP_DEBUG"))
+	logger, closeLog, err := newLogger(logFileTarget, debugLogging)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to configure logging: %v\n", err)
+		return 1
 	}
-
-	logLevel := slog.LevelInfo
-	if debugEnv := os.Getenv("LOGFIRE_MCP_DEBUG"); debugEnv == "1" || strings.ToLower(debugEnv) == "true" {
-		logLevel = slog.LevelDebug
-	}
-
-	logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{Level: logLevel}))
+	defer closeLog()
 	slog.SetDefault(logger)
 
 	// Load configuration
@@ -93,6 +71,8 @@ func run() int {
 		"base_url", cfg.BaseURL,
 		"max_result_bytes", maxResultBytes,
 		"lockfile", lockFilePath,
+		"logfile", logFileTarget,
+		"debug", debugLogging,
 	)
 
 	client := logfire.NewClient(cfg)
@@ -112,6 +92,43 @@ func run() int {
 
 	slog.Info("logfire-mcp server stopped gracefully")
 	return 0
+}
+
+func debugEnabled(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "0", "false", "off":
+		return false
+	default:
+		return true
+	}
+}
+
+func newLogger(target string, debug bool) (*slog.Logger, func(), error) {
+	var writer io.Writer
+	closeLog := func() {}
+
+	switch strings.ToLower(target) {
+	case "off":
+		writer = io.Discard
+	case "stderr":
+		writer = os.Stderr
+	default:
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return nil, nil, fmt.Errorf("create log directory: %w", err)
+		}
+		file, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			return nil, nil, fmt.Errorf("open logfile: %w", err)
+		}
+		writer = file
+		closeLog = func() { _ = file.Close() }
+	}
+
+	level := slog.LevelDebug
+	if !debug {
+		level = slog.LevelInfo
+	}
+	return slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{Level: level})), closeLog, nil
 }
 
 func acquireLock(path string) (func(), error) {

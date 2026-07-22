@@ -84,3 +84,25 @@ func TestAcceptHeaderFor(t *testing.T) {
 		t.Errorf("expected error for unsupported format xml")
 	}
 }
+
+func TestCountResultRows(t *testing.T) {
+	jsonPayload := `{"schema":{"fields":[]},"data":[{"a":1},{"a":2},{"a":3}]}`
+	if cnt := logfire.CountResultRows(jsonPayload, "json"); cnt != 3 {
+		t.Errorf("expected 3 rows for JSON, got %d", cnt)
+	}
+
+	emptyJSON := `{"schema":{"fields":[]},"data":[]}`
+	if cnt := logfire.CountResultRows(emptyJSON, "json"); cnt != 0 {
+		t.Errorf("expected 0 rows for empty JSON, got %d", cnt)
+	}
+
+	csvPayload := "col1,col2\nval1,val2\nval3,val4\n"
+	if cnt := logfire.CountResultRows(csvPayload, "csv"); cnt != 2 {
+		t.Errorf("expected 2 rows for CSV, got %d", cnt)
+	}
+
+	emptyCSV := "col1,col2\n"
+	if cnt := logfire.CountResultRows(emptyCSV, "csv"); cnt != 0 {
+		t.Errorf("expected 0 rows for empty CSV, got %d", cnt)
+	}
+}

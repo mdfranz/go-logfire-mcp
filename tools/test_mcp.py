@@ -45,7 +45,7 @@ for h in logging.root.handlers:
 logger = logging.getLogger("logfire_mcp_test")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SERVER_BINARY = REPO_ROOT / "bin" / "logfire-mcp"
+SERVER_BINARY = REPO_ROOT / "logfire-mcp"
 FIXTURE_PORT = 8902
 
 SYSTEM_PROMPT = """

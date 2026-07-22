@@ -27,4 +27,4 @@ The end-to-end test script in [tools/test_mcp.py](tools/test_mcp.py) uses PEP 72
 
 ## Third-Party Go Dependency Policy
 
-The core client ([internal/logfire/](internal/logfire/)) and command-line binary ([cmd/logfire-cli/](cmd/logfire-cli/)) deliberately use **zero third-party dependencies**. All HTTP requests, JSON marshaling, rate-limit retries, structured logging (`log/slog`), signal handling (`os/signal`), and CLI parsing (`flag`) rely exclusively on the Go standard library.
+The core client ([internal/logfire/](internal/logfire/)) and command-line binary ([cmd/logfire-cli/](cmd/logfire-cli/)) deliberately use **zero third-party dependencies**. All HTTP requests, JSON marshaling, rate-limit retries, structured logging (`log/slog`), signal handling (`os/signal`), and CLI parsing (`flag`) rely exclusively on the Go standard library. The CLI and MCP binaries each write to their own configurable append-only log target, with DEBUG enabled by default.
