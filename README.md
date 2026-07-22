@@ -1,0 +1,100 @@
+# go-logfire-mcp
+
+A Go CLI tool (`logfire-cli`) and Model Context Protocol (MCP) server (`logfire-mcp`) for querying telemetry data stored in [Logfire](https://logfire.pydantic.dev) via its direct `POST /v2/query` REST API.
+
+## Architecture
+
+This project uses a shared-core pattern where business logic, API communication, and validation live in `internal/logfire/`, and the two binaries act as thin transport adapters:
+
+- **`logfire-cli`** (`cmd/logfire-cli/`): Command-line tool for direct terminal queries returning JSON or CSV.
+- **`logfire-mcp`** (`cmd/logfire-mcp/`): MCP stdio server providing tools and schema resources for AI assistants (`pydantic-ai`, Claude, Gemini).
+- **`internal/logfire/`**: Core HTTP client, configuration, schema metadata, input validation, and error handling.
+
+For complete package-level documentation, see [PKG.md](PKG.md).
+
+## Prerequisites
+
+- Go 1.22+
+- A Logfire project read token or API key (`LOGFIRE_API_TOKEN`, `LOGFIRE_READ_TOKEN`, or `LOGFIRE_API_KEY`).
+
+## Build & Install
+
+```bash
+# Build both binaries to ./bin/
+make build
+
+# Run unit tests
+make test
+
+# Install binaries to $GOPATH/bin
+make install
+```
+
+## Configuration
+
+Configuration is set via environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOGFIRE_API_TOKEN` | Required | Logfire read token or API key. Also accepts `LOGFIRE_READ_TOKEN` or `LOGFIRE_API_KEY`. |
+| `LOGFIRE_REGION` | `us` | Region: `us` or `eu`. Auto-inferred if token prefix is `pylf_v1_eu_...`. |
+| `LOGFIRE_BASE_URL` | Optional | Custom base URL override (used for testing against mock servers). |
+| `LOGFIRE_MCP_LOGFILE` | `stderr` | MCP server log target: `stderr`, `off`, or a file path. |
+| `LOGFIRE_MCP_LOCKFILE` | `off` | Lockfile path for single-instance PID locking (e.g. `/tmp/logfire-mcp.lock`). |
+| `LOGFIRE_MCP_MAX_RESULT_BYTES` | `1048576` | Maximum size cap (in bytes) for MCP tool response strings (default 1 MiB). |
+
+## CLI Usage (`logfire-cli`)
+
+```bash
+# General help (does not require an API token)
+./bin/logfire-cli --help
+
+# Query records in JSON format (default)
+export LOGFIRE_API_TOKEN="pylf_v1_us_..."
+./bin/logfire-cli query \
+  --sql "SELECT start_timestamp, service_name, message FROM records ORDER BY start_timestamp DESC LIMIT 5" \
+  --min-timestamp "2026-01-01T00:00:00Z"
+
+# Grouping query in CSV format
+./bin/logfire-cli query \
+  --sql "SELECT service_name, count(*) as total FROM records GROUP BY service_name ORDER BY total DESC" \
+  --min-timestamp "2026-01-01T00:00:00Z" \
+  --format csv
+```
+
+### CLI Flags for `query`
+
+- `--sql` (required): DataFusion SQL query string.
+- `--min-timestamp` (required): Minimum timestamp filter in RFC3339 format (e.g. `2026-01-01T00:00:00Z`).
+- `--max-timestamp` (optional): Upper bound timestamp filter in RFC3339 format.
+- `--limit` (optional): Row limit integer (1–10,000).
+- `--format` (optional): Output format: `json` (default) or `csv`.
+
+## MCP Server Capabilities (`logfire-mcp`)
+
+### Tools
+
+- **`query_run`**: Executes DataFusion SQL queries against Logfire `records` or `metrics` tables.
+  - Parameters: `query` (string, required), `min_timestamp` (string RFC3339, required), `max_timestamp` (string RFC3339, optional), `limit` (integer, optional).
+  - Enforces strict unknown field rejection (`DisallowUnknownFields`) and returns structured MCP error results (`IsError: true`) on query failures.
+- **`get_schema_metadata`**: Returns embedded Markdown documentation of table schemas, column types, and common DataFusion SQL query patterns with zero network overhead.
+
+### Resources
+
+- **`logfire://schema`**: Static `text/markdown` resource containing the complete Logfire database schema reference.
+
+## Testing
+
+```bash
+# Run unit tests across all packages
+make test
+
+# Run end-to-end Python harness test using pydantic-ai
+make test-e2e
+```
+
+The test harness in [tools/test_mcp.py](tools/test_mcp.py) runs deterministic protocol tests against a mock server when offline, or live `pydantic-ai` agent tests when an LLM API key is present.
+
+## License
+
+MIT
