@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "logfire-mcp": {
+      "command": "./logfire-mcp",
+      "args": [],
+      "env": {
+        "LOGFIRE_API_KEY": "${LOGFIRE_API_KEY}",
+        "LOGFIRE_REGION": "us",
+        "LOGFIRE_MCP_DEBUG": "true"
+      }
+    }
+  }
+}

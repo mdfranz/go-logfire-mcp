@@ -3,3 +3,6 @@ logfire-mcp
 logfire-cli
 *.lock
 *.log
+.env
+.env.*
+!.env.example

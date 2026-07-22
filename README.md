@@ -89,6 +89,10 @@ export LOGFIRE_API_TOKEN="pylf_v1_us_..."
 
 - **`logfire://schema`**: Static `text/markdown` resource containing the complete Logfire database schema reference.
 
+### MCP Client Configuration
+
+An [`.mcp.json`](.mcp.json) file is included for MCP clients (e.g. Claude Code) that auto-discover project-scoped servers. Update the `command` path to point at your built `logfire-mcp` binary and set `LOGFIRE_API_TOKEN` in your environment.
+
 ## Testing
 
 ```bash
