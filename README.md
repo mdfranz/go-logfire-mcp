@@ -103,7 +103,7 @@ make test
 make test-e2e
 ```
 
-The test harness in [tools/test_mcp.py](tools/test_mcp.py) runs deterministic protocol tests against a mock server when offline, or live `pydantic-ai` agent tests when an LLM API key is present.
+The test harness in [tools/test_mcp.py](tools/test_mcp.py) runs deterministic protocol tests against a mock server when offline, or live `pydantic-ai` agent tests when an LLM API key is present. Automated CI runs formatting, static checks, unit tests, binary builds, and end-to-end tests via [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## License
 

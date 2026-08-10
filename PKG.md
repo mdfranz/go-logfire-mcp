@@ -25,11 +25,10 @@ The end-to-end test script in [tools/test_mcp.py](tools/test_mcp.py) uses PEP 72
 - **`mcp`**: Official Python Model Context Protocol SDK used for protocol-level assertions and stdio communication.
 - **`httpx`**: Asynchronous HTTP client library used by `pydantic-ai`.
 
-## Dependency Maintenance
+## Continuous Integration & Maintenance
 
-Automated dependency updates are configured via [.github/dependabot.yml](.github/dependabot.yml):
-- **Go Modules (`gomod`)**: Monitored weekly for updates to Go dependencies.
-- **GitHub Actions (`github-actions`)**: Monitored weekly for updates to CI/CD workflows.
+- **CI Workflow ([.github/workflows/ci.yml](.github/workflows/ci.yml))**: Runs automated formatting checks (`make fmt`), Go static analysis (`make vet`), unit tests (`make test`), binary compilation (`make build`), and end-to-end protocol testing (`make test-e2e`) on every push and pull request to `main`.
+- **Dependabot ([.github/dependabot.yml](.github/dependabot.yml))**: Monitored weekly for Go module (`gomod`) and GitHub Actions (`github-actions`) dependency updates.
 
 ## Third-Party Go Dependency Policy
 

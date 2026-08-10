@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check formatting and vet
+        run: |
+          make fmt
+          git diff --exit-code
+          make vet
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Build binaries
+        run: make build
+
+      - name: Run end-to-end tests
+        run: make test-e2e
