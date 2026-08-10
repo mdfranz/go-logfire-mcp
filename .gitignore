@@ -1,6 +1,6 @@
 bin/
-logfire-mcp
-logfire-cli
+/logfire-mcp
+/logfire-cli
 *.lock
 *.log
 .env

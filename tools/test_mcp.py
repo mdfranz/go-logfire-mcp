@@ -1,6 +1,7 @@
 # /// script
 # dependencies = [
 #     "pydantic-ai",
+#     "mcp",
 #     "httpx",
 # ]
 # ///
@@ -26,6 +27,8 @@ import sys
 import time
 from pathlib import Path
 
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPToolset, StdioTransport
 
@@ -102,26 +105,29 @@ async def run_deterministic_tests():
         "LOGFIRE_MCP_LOGFILE": "off",
     }
     
-    transport = StdioTransport(command=str(SERVER_BINARY), args=[], env=env)
-    async with MCPToolset(transport) as toolset:
-        tools = await toolset.get_tools()
-        tool_names = [t.name for t in tools]
-        logger.info("Server tools exposed: %s", tool_names)
-        assert "query_run" in tool_names
-        assert "get_schema_metadata" in tool_names
-        
-        # Test get_schema_metadata
-        schema_result = await toolset.call_tool("get_schema_metadata", {})
-        assert "Logfire Schema Reference" in str(schema_result)
-        logger.info("✓ get_schema_metadata verified")
+    server_params = StdioServerParameters(command=str(SERVER_BINARY), args=[], env=env)
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            
+            tools_response = await session.list_tools()
+            tool_names = [t.name for t in tools_response.tools]
+            logger.info("Server tools exposed: %s", tool_names)
+            assert "query_run" in tool_names
+            assert "get_schema_metadata" in tool_names
+            
+            # Test get_schema_metadata
+            schema_result = await session.call_tool("get_schema_metadata", {})
+            assert "Logfire Schema Reference" in str(schema_result.content[0].text)
+            logger.info("✓ get_schema_metadata verified")
 
-        # Test query_run
-        query_result = await toolset.call_tool(
-            "query_run",
-            {"query": "SELECT message FROM records", "min_timestamp": "2026-01-01T00:00:00Z"}
-        )
-        assert "hello from fixture" in str(query_result)
-        logger.info("✓ query_run verified")
+            # Test query_run
+            query_result = await session.call_tool(
+                "query_run",
+                {"query": "SELECT message FROM records", "min_timestamp": "2026-01-01T00:00:00Z"}
+            )
+            assert "hello from fixture" in str(query_result.content[0].text)
+            logger.info("✓ query_run verified")
 
     fixture_proc.terminate()
     fixture_proc.wait()
