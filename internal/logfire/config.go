@@ -30,12 +30,14 @@ type Config struct {
 
 // LoadConfig loads configuration from environment variables.
 func LoadConfig() (*Config, error) {
-	token := strings.TrimSpace(os.Getenv("LOGFIRE_API_TOKEN"))
+	// API keys are the current credential for scoped Logfire access. Keep the
+	// read-token and API-token names as compatibility aliases.
+	token := strings.TrimSpace(os.Getenv("LOGFIRE_API_KEY"))
 	if token == "" {
 		token = strings.TrimSpace(os.Getenv("LOGFIRE_READ_TOKEN"))
 	}
 	if token == "" {
-		token = strings.TrimSpace(os.Getenv("LOGFIRE_API_KEY"))
+		token = strings.TrimSpace(os.Getenv("LOGFIRE_API_TOKEN"))
 	}
 
 	regionEnv := strings.ToLower(strings.TrimSpace(os.Getenv("LOGFIRE_REGION")))
@@ -102,15 +104,12 @@ func LoadConfig() (*Config, error) {
 // ValidateForQuery ensures that a valid auth token is present for making API calls.
 func (c *Config) ValidateForQuery() error {
 	if c.APIToken == "" {
-		return fmt.Errorf("missing Logfire read token: set LOGFIRE_API_TOKEN or LOGFIRE_READ_TOKEN")
+		return fmt.Errorf("missing Logfire query credential: set LOGFIRE_API_KEY, LOGFIRE_READ_TOKEN, or LOGFIRE_API_TOKEN")
 	}
 	return nil
 }
 
-// BearerToken returns the formatted Authorization header value.
-func (c *Config) BearerToken() string {
-	if strings.HasPrefix(c.APIToken, "Bearer ") {
-		return c.APIToken
-	}
-	return "Bearer " + c.APIToken
+// AuthorizationValue returns the raw credential for the Authorization header.
+func (c *Config) AuthorizationValue() string {
+	return strings.TrimPrefix(c.APIToken, "Bearer ")
 }

@@ -15,7 +15,7 @@ test:
 
 test-e2e: build
 	@if command -v uv >/dev/null 2>&1; then \
-		uv run tools/test_mcp.py; \
+		uv run --with-requirements tools/requirements.txt tools/test_mcp.py; \
 	else \
 		python3 tools/test_mcp.py; \
 	fi

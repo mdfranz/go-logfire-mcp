@@ -20,7 +20,7 @@ func TestClientQuerySuccess(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("unexpected method: %s", r.Method)
 		}
-		if r.Header.Get("Authorization") != "Bearer test-token" {
+		if r.Header.Get("Authorization") != "test-token" {
 			t.Errorf("unexpected auth header: %s", r.Header.Get("Authorization"))
 		}
 		if r.Header.Get("Accept") != "application/json" {

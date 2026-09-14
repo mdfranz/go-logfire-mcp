@@ -11,12 +11,14 @@ func TestConfigLoading(t *testing.T) {
 	// Save existing env
 	oldToken := os.Getenv("LOGFIRE_API_TOKEN")
 	oldReadToken := os.Getenv("LOGFIRE_READ_TOKEN")
+	oldAPIKey := os.Getenv("LOGFIRE_API_KEY")
 	oldRegion := os.Getenv("LOGFIRE_REGION")
 	oldBaseURL := os.Getenv("LOGFIRE_BASE_URL")
 
 	defer func() {
 		os.Setenv("LOGFIRE_API_TOKEN", oldToken)
 		os.Setenv("LOGFIRE_READ_TOKEN", oldReadToken)
+		os.Setenv("LOGFIRE_API_KEY", oldAPIKey)
 		os.Setenv("LOGFIRE_REGION", oldRegion)
 		os.Setenv("LOGFIRE_BASE_URL", oldBaseURL)
 	}()
@@ -24,6 +26,7 @@ func TestConfigLoading(t *testing.T) {
 	t.Run("Default region US", func(t *testing.T) {
 		os.Unsetenv("LOGFIRE_API_TOKEN")
 		os.Unsetenv("LOGFIRE_READ_TOKEN")
+		os.Unsetenv("LOGFIRE_API_KEY")
 		os.Unsetenv("LOGFIRE_REGION")
 		os.Unsetenv("LOGFIRE_BASE_URL")
 
@@ -42,6 +45,7 @@ func TestConfigLoading(t *testing.T) {
 	t.Run("Auto-detect EU token region", func(t *testing.T) {
 		os.Setenv("LOGFIRE_API_TOKEN", "pylf_v1_eu_123456789")
 		os.Unsetenv("LOGFIRE_READ_TOKEN")
+		os.Unsetenv("LOGFIRE_API_KEY")
 		os.Unsetenv("LOGFIRE_REGION")
 		os.Unsetenv("LOGFIRE_BASE_URL")
 
@@ -60,6 +64,7 @@ func TestConfigLoading(t *testing.T) {
 	t.Run("LOGFIRE_READ_TOKEN fallback", func(t *testing.T) {
 		os.Unsetenv("LOGFIRE_API_TOKEN")
 		os.Setenv("LOGFIRE_READ_TOKEN", "my-read-token")
+		os.Unsetenv("LOGFIRE_API_KEY")
 		os.Unsetenv("LOGFIRE_REGION")
 		os.Unsetenv("LOGFIRE_BASE_URL")
 
@@ -69,6 +74,22 @@ func TestConfigLoading(t *testing.T) {
 		}
 		if cfg.APIToken != "my-read-token" {
 			t.Errorf("expected my-read-token, got %s", cfg.APIToken)
+		}
+	})
+
+	t.Run("LOGFIRE_API_KEY is preferred for query auth", func(t *testing.T) {
+		os.Unsetenv("LOGFIRE_API_TOKEN")
+		os.Setenv("LOGFIRE_READ_TOKEN", "legacy-read-token")
+		os.Setenv("LOGFIRE_API_KEY", "api-key")
+		os.Unsetenv("LOGFIRE_REGION")
+		os.Unsetenv("LOGFIRE_BASE_URL")
+
+		cfg, err := logfire.LoadConfig()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if cfg.APIToken != "api-key" {
+			t.Errorf("expected API key to be preferred, got %q", cfg.APIToken)
 		}
 	})
 

@@ -136,8 +136,9 @@ Flags for 'query':
   --format string         Output format: json or csv (default "json")
 
 Environment Variables:
-  LOGFIRE_API_TOKEN   Logfire project read token (required for queries)
-  LOGFIRE_READ_TOKEN  Alternative token env var fallback
+  LOGFIRE_API_KEY     Logfire API key with project:read_oltp (preferred)
+  LOGFIRE_READ_TOKEN  Legacy project read token fallback
+  LOGFIRE_API_TOKEN   Compatibility alias for the query credential
   LOGFIRE_REGION      Logfire region ("us" or "eu", default "us")
   LOGFIRE_BASE_URL    Advanced/test override for base URL
   LOGFIRE_MAX_RETRIES Max retries for API requests (default 3)

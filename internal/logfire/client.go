@@ -70,7 +70,7 @@ func (c *Client) Query(ctx context.Context, input QueryInput, format string) (st
 			return "", fmt.Errorf("failed to create request: %w", err)
 		}
 
-		req.Header.Set("Authorization", c.cfg.BearerToken())
+		req.Header.Set("Authorization", c.cfg.AuthorizationValue())
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", acceptHeader)
 

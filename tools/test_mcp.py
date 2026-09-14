@@ -1,21 +1,14 @@
-# /// script
-# dependencies = [
-#     "pydantic-ai",
-#     "mcp",
-#     "httpx",
-# ]
-# ///
 """
 End-to-end MCP test harness for logfire-mcp using pydantic-ai.
 
 Usage:
-    uv run tools/test_mcp.py [model]
+    uv run --with-requirements tools/requirements.txt tools/test_mcp.py [model]
 
 Examples:
-    uv run tools/test_mcp.py                           # Deterministic offline test if no LLM key
-    uv run tools/test_mcp.py google-gla:gemini-2.5-flash # Live LLM test with pydantic-ai
+    uv run --with-requirements tools/requirements.txt tools/test_mcp.py
+    uv run --with-requirements tools/requirements.txt tools/test_mcp.py google-gla:gemini-3.8-flash
 
-Requires: LOGFIRE_API_TOKEN, LOGFIRE_READ_TOKEN, or LOGFIRE_API_KEY in environment for live queries.
+Requires: LOGFIRE_API_KEY, LOGFIRE_READ_TOKEN, or LOGFIRE_API_TOKEN in environment for live queries.
 Requires: GOOGLE_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY for LLM agent execution.
 """
 
@@ -27,6 +20,7 @@ import sys
 import time
 from pathlib import Path
 
+import logfire
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from pydantic_ai import Agent
@@ -137,10 +131,21 @@ async def run_agent_tests(model_name: str):
     """Runs live agent tests using pydantic-ai and logfire-mcp server."""
     logger.info("Running live agent tests with model %s...", model_name)
     
-    token = os.getenv("LOGFIRE_API_TOKEN") or os.getenv("LOGFIRE_READ_TOKEN") or os.getenv("LOGFIRE_API_KEY")
+    token = os.getenv("LOGFIRE_API_KEY") or os.getenv("LOGFIRE_READ_TOKEN") or os.getenv("LOGFIRE_API_TOKEN")
     if not token:
-        logger.error("LOGFIRE_API_TOKEN, LOGFIRE_READ_TOKEN, or LOGFIRE_API_KEY must be set for live agent tests")
+        logger.error("LOGFIRE_API_KEY, LOGFIRE_READ_TOKEN, or LOGFIRE_API_TOKEN must be set for live agent tests")
         sys.exit(1)
+
+    credentials_path = REPO_ROOT / ".logfire" / "logfire_credentials.json"
+    if credentials_path.exists() or os.getenv("LOGFIRE_TOKEN"):
+        logfire.configure(
+            data_dir=REPO_ROOT / ".logfire",
+            service_name="go-logfire-mcp-e2e",
+        )
+        logfire.instrument_pydantic_ai()
+        logger.info("Logfire observability enabled for pydantic-ai agent runs")
+    else:
+        logger.info("No local Logfire telemetry credential found; agent observability remains disabled")
 
     env = {
         **os.environ,
@@ -168,7 +173,7 @@ def select_default_model() -> str | None:
     if "GOOGLE_API_KEY" in os.environ or "GEMINI_API_KEY" in os.environ:
         if "GEMINI_API_KEY" in os.environ and "GOOGLE_API_KEY" not in os.environ:
             os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
-        return "google:gemini-2.5-flash"
+        return "google:gemini-3.8-flash"
     if "OPENAI_API_KEY" in os.environ:
         return "openai:gpt-4o-mini"
     if "ANTHROPIC_API_KEY" in os.environ:

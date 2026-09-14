@@ -2,6 +2,10 @@
 
 This document lists external libraries and packages used by `go-logfire-mcp`.
 
+## Logfire Authentication
+
+The CLI and MCP server call Logfire's direct `/v2/query` endpoint. The preferred credential is a Logfire API key with the `project:read_oltp` scope in `LOGFIRE_API_KEY`; existing project read tokens remain supported through `LOGFIRE_READ_TOKEN` or `LOGFIRE_API_TOKEN`. Credentials are sent as the raw `Authorization` header value.
+
 ## Go Direct Dependencies
 
 ### [`github.com/modelcontextprotocol/go-sdk`](https://github.com/modelcontextprotocol/go-sdk) (`v1.6.1`)
@@ -19,16 +23,17 @@ This document lists external libraries and packages used by `go-logfire-mcp`.
 
 ## Python Test Harness Dependencies
 
-The end-to-end test script in [tools/test_mcp.py](tools/test_mcp.py) uses PEP 723 inline dependency metadata:
+The end-to-end test script in [tools/test_mcp.py](tools/test_mcp.py) uses the direct requirements in [tools/requirements.in](tools/requirements.in) and the resolved dependency set in [tools/requirements.txt](tools/requirements.txt). Run it with `uv run --with-requirements tools/requirements.txt tools/test_mcp.py`:
 
 - **`pydantic-ai`**: Agentic AI framework used to run live LLM evaluation tests against the `logfire-mcp` server via `pydantic_ai.mcp.MCPToolset` and `StdioTransport`.
+- **`logfire`**: Pydantic Logfire SDK used to instrument live Pydantic AI agent runs and send telemetry using the project-local `.logfire` credential.
 - **`mcp`**: Official Python Model Context Protocol SDK used for protocol-level assertions and stdio communication.
 - **`httpx`**: Asynchronous HTTP client library used by `pydantic-ai`.
 
 ## Continuous Integration & Maintenance
 
 - **CI Workflow ([.github/workflows/ci.yml](.github/workflows/ci.yml))**: Runs automated formatting checks (`make fmt`), Go static analysis (`make vet`), unit tests (`make test`), binary compilation (`make build`), and end-to-end protocol testing (`make test-e2e`) on every push and pull request to `main`.
-- **Dependabot ([.github/dependabot.yml](.github/dependabot.yml))**: Monitored weekly for Go module (`gomod`) and GitHub Actions (`github-actions`) dependency updates.
+- **Dependabot ([.github/dependabot.yml](.github/dependabot.yml))**: Monitored weekly for Go module (`gomod`), Python (`pip`), and GitHub Actions (`github-actions`) dependency updates.
 
 ## Third-Party Go Dependency Policy
 

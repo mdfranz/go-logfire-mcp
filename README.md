@@ -15,7 +15,7 @@ For complete package-level documentation, see [PKG.md](PKG.md).
 ## Prerequisites
 
 - Go 1.22+
-- A Logfire project read token or API key (`LOGFIRE_API_TOKEN`, `LOGFIRE_READ_TOKEN`, or `LOGFIRE_API_KEY`).
+- A Logfire API key with the `project:read_oltp` scope (`LOGFIRE_API_KEY`). Legacy project read tokens are also accepted through `LOGFIRE_READ_TOKEN` or `LOGFIRE_API_TOKEN`.
 
 ## Build & Install
 
@@ -36,7 +36,9 @@ Configuration is set via environment variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `LOGFIRE_API_TOKEN` | Required | Logfire read token or API key. Also accepts `LOGFIRE_READ_TOKEN` or `LOGFIRE_API_KEY`. |
+| `LOGFIRE_API_KEY` | Required | Preferred Logfire API key for direct queries; it must include `project:read_oltp`. |
+| `LOGFIRE_READ_TOKEN` | Fallback | Legacy Logfire project read token. |
+| `LOGFIRE_API_TOKEN` | Fallback | Compatibility alias for an API key or legacy read token. |
 | `LOGFIRE_REGION` | `us` | Region: `us` or `eu`. Auto-inferred if token prefix is `pylf_v1_eu_...`. |
 | `LOGFIRE_BASE_URL` | Optional | Custom base URL override (used for testing against mock servers). |
 | `LOGFIRE_MCP_LOGFILE` | `logfire-mcp.log` | MCP server log target: `stderr`, `off`, or an append-only file path. |
@@ -49,6 +51,8 @@ Configuration is set via environment variables:
 
 The CLI and MCP server use separate log files so their independent processes do not interleave output. API read tokens and query result payloads are never written to logs. When DEBUG logging is enabled, debug log entries record the SQL query text, parameters, execution latency (`duration_ms`), returned row count (`records`), and byte size (`result_bytes`). Use `stderr` when a process supervisor should collect logs instead.
 
+The direct `/v2/query` API accepts a scoped API key with `project:read_oltp`. New Logfire projects should create this key under Security & access. Existing project read tokens remain supported. The API key or read token is sent as the raw `Authorization` header value, matching Logfire's current query client.
+
 ## CLI Usage (`logfire-cli`)
 
 ```bash
@@ -56,7 +60,7 @@ The CLI and MCP server use separate log files so their independent processes do 
 ./logfire-cli --help
 
 # Query records in JSON format (default)
-export LOGFIRE_API_TOKEN="pylf_v1_us_..."
+export LOGFIRE_API_KEY="pylf_v1_us_..."
 ./logfire-cli query \
   --sql "SELECT start_timestamp, service_name, message FROM records ORDER BY start_timestamp DESC LIMIT 5" \
   --min-timestamp "2026-01-01T00:00:00Z"
@@ -91,7 +95,7 @@ export LOGFIRE_API_TOKEN="pylf_v1_us_..."
 
 ### MCP Client Configuration
 
-An [`.mcp.json`](.mcp.json) file is included for MCP clients (e.g. Claude Code) that auto-discover project-scoped servers. Update the `command` path to point at your built `logfire-mcp` binary and set `LOGFIRE_API_TOKEN` in your environment.
+An [`.mcp.json`](.mcp.json) file is included for MCP clients (e.g. Claude Code) that auto-discover project-scoped servers. Update the `command` path to point at your built `logfire-mcp` binary and set `LOGFIRE_API_KEY` in your environment.
 
 ## Testing
 
@@ -103,7 +107,7 @@ make test
 make test-e2e
 ```
 
-The test harness in [tools/test_mcp.py](tools/test_mcp.py) runs deterministic protocol tests against a mock server when offline, or live `pydantic-ai` agent tests when an LLM API key is present. Automated CI runs formatting, static checks, unit tests, binary builds, and end-to-end tests via [.github/workflows/ci.yml](.github/workflows/ci.yml).
+The test harness in [tools/test_mcp.py](tools/test_mcp.py) runs deterministic protocol tests against a mock server when offline, or live `pydantic-ai` agent tests when an LLM API key is present. Run it with `uv run --with-requirements tools/requirements.txt tools/test_mcp.py`; the resolved Python dependencies are tracked in [tools/requirements.txt](tools/requirements.txt), with direct requirements listed in [tools/requirements.in](tools/requirements.in). When the project-local `.logfire/logfire_credentials.json` exists, live agent runs enable Pydantic AI instrumentation and send their telemetry to the configured Logfire project. Automated CI runs formatting, static checks, unit tests, binary builds, and end-to-end tests via [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## License
 
