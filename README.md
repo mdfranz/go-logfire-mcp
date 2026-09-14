@@ -2,6 +2,8 @@
 
 A Go CLI tool (`logfire-cli`) and Model Context Protocol (MCP) server (`logfire-mcp`) for querying telemetry data stored in [Logfire](https://logfire.pydantic.dev) via its direct `POST /v2/query` REST API.
 
+> **Warning:** This is a toy project I built while interviewing at Pydantic. It is based only on publicly available open-source code and documentation and is not an official Pydantic or Logfire project. For production use, prefer the official Pydantic MCP servers and documentation where available.
+
 ## Architecture
 
 This project uses a shared-core pattern where business logic, API communication, and validation live in `internal/logfire/`, and the two binaries act as thin transport adapters:
